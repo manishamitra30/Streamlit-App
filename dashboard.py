@@ -1,4 +1,4 @@
-mport streamlit as st
+import streamlit as st
 import plotly.graph_objects as go
 import requests
 import random
@@ -70,5 +70,6 @@ if st.button("Generate Bait Profile"):
             showlegend=False
         )
     )
+
 
     st.plotly_chart(fig, use_container_width=True)
