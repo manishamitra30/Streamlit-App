@@ -1,75 +1,111 @@
 import streamlit as st
 import plotly.graph_objects as go
-import requests
-import random
 
+# -----------------------------
+# IMPORT Poonam's backend (janus)
+# -----------------------------
+from main import janus   # <-- This connects your app to the real ML system
+
+
+# -----------------------------
+# Function to get REAL bait profile
+# -----------------------------
+def get_bait_profile(trait="high_neuroticism"):
+    """
+    Calls Poonam's janus.generate_bait_profile(trait)
+    and converts the result into a dictionary.
+    """
+    profile = janus.generate_bait_profile(trait)
+    return profile.to_dict()
+
+
+
+# -----------------------------
+# STREAMLIT UI STARTS HERE
+# -----------------------------
 st.set_page_config(page_title="Persona Cloak Command Center", layout="wide")
 
-# ---- CONFIG ----
-USE_BACKEND = False   # change to True when Poonam gives API
-BACKEND_URL = "http://localhost:8000/generate_bait_profile"
-
-
-# ---- MOCK FUNCTION (FOR NOW) ----
-def mock_api():
-    bio_list = [
-        "I enjoy cooking, exploring new hiking trails, and reading sci-fi.",
-        "Tech enthusiast who loves building apps and drinking too much coffee.",
-        "Creative writer who spends weekends painting and gaming."
-    ]
-    return {
-        "bio": random.choice(bio_list),
-        "personality": {
-            "openness": round(random.uniform(0.2, 0.9), 2),
-            "conscientiousness": round(random.uniform(0.2, 0.9), 2),
-            "extraversion": round(random.uniform(0.2, 0.9), 2),
-            "agreeableness": round(random.uniform(0.2, 0.9), 2),
-            "neuroticism": round(random.uniform(0.2, 0.9), 2)
-        }
-    }
-
-
-# ---- CALL BACKEND OR MOCK ----
-def get_bait_profile():
-    if USE_BACKEND:
-        response = requests.post(BACKEND_URL)
-        return response.json()
-    else:
-        return mock_api()
-# ---- UI ----
 st.title("🛡 Persona Cloak — Command Center Dashboard")
-st.write("Generate and visualize bait profiles used for adversarial personality cloaking.")
+st.write("Generate REAL bait profiles based on selected personality traits.")
 
-if st.button("Generate Bait Profile"):
-    data = get_bait_profile()
+st.markdown("---")
 
-    st.subheader("Generated Bio")
+
+# -----------------------------
+# Dropdown for selecting trait
+# -----------------------------
+trait = st.selectbox(
+    "🎯 Select a target personality trait:",
+    [
+        "high_neuroticism",
+        "low_openness",
+        "high_extraversion",
+        "low_agreeableness",
+        "high_conscientiousness"
+          ]
+)
+
+st.markdown("---")
+
+
+# -----------------------------
+# Button to generate profile
+# -----------------------------
+if st.button("✨ Generate Bait Profile"):
+    
+    with st.spinner("Generating real bait profile..."):
+        data = get_bait_profile(trait)
+
+    # --------------------------------
+    # Display generated BIO
+    # --------------------------------
+    st.subheader("📝 Generated Bio")
     st.info(data["bio"])
 
-    st.subheader("Personality Scores")
+    st.markdown("---")
+
+    # --------------------------------
+    # Display personality scores
+    # --------------------------------
+    st.subheader("📊 Personality Scores (Big Five)")
     traits = data["personality"]
+
+    # Show as a clean table
     st.json(traits)
 
+     st.markdown("---")
+
+    # --------------------------------
     # Radar Chart
-    st.subheader("Radar Chart (Big Five Traits)")
+    # --------------------------------
+    st.subheader("📈 Radar Chart")
 
     labels = list(traits.keys())
     values = list(traits.values())
 
-    labels += labels[:1]    # close loop
+    # Radar chart must form a closed loop
+    labels += labels[:1]
     values += values[:1]
 
     fig = go.Figure(
-        data=[go.Scatterpolar(
-            r=values,
-            theta=[label.capitalize() for label in labels],
-            fill='toself'
-        )],
+        data=[
+            go.Scatterpolar(
+                r=values,
+                theta=[label.capitalize() for label in labels],
+                fill='toself'
+            )
+        ],
         layout=go.Layout(
-            polar=dict(radialaxis=dict(range=[0, 1], visible=True)),
+            polar=dict(
+                radialaxis=dict(range=[0, 1], visible=True)
+            ),
             showlegend=False
         )
     )
 
-
     st.plotly_chart(fig, use_container_width=True)
+
+else:
+    st.info("Click *Generate Bait Profile* to see results.")
+
+
